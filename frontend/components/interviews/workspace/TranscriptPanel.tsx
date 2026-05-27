@@ -373,7 +373,6 @@ export function TranscriptPanel({ interviewId }: { interviewId: string }) {
 
       // ScriptProcessor: 4096 frames, 1 input channel, 1 output channel.
       // Deprecated but universally supported; AudioWorklet needs a Worker file.
-      // eslint-disable-next-line @typescript-eslint/no-deprecated
       const processor = audioCtx.createScriptProcessor(4096, 1, 1);
 
       // Connect to a silent destination — keeps the graph active without
