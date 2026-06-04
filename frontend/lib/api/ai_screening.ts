@@ -169,3 +169,208 @@ export async function pollUntilSettled(
 
   throw new Error(`Screening ${screeningId} did not settle after ${maxAttempts} polls`);
 }
+
+// ── Live Interview ────────────────────────────────────────────────────────────
+
+export interface LiveInterviewMessage {
+  id: string;
+  role: "interviewer" | "candidate" | "system";
+  content: string;
+  sequence_number: number;
+  question_number: number | null;
+  is_followup: boolean;
+  created_at: string;
+}
+
+export interface LiveInterview {
+  id: string;
+  candidate_id: string;
+  job_id: string | null;
+  status: string;
+  session_token: string | null;
+  livekit_room_name: string | null;
+  candidate_name_snapshot: string | null;
+  job_title_snapshot: string | null;
+  interview_mode: string;
+  overall_score: number | null;
+  recommendation: string | null;
+  ai_summary: string | null;
+  strengths: string[] | null;
+  concerns: string[] | null;
+  salary_expectation: string | null;
+  notice_period: string | null;
+  career_goals: string | null;
+  candidate_questions: string | null;
+  key_projects_mentioned: string[] | null;
+  communication_score: number | null;
+  experience_score: number | null;
+  confidence_score: number | null;
+  culture_fit_score: number | null;
+  leadership_score: number | null;
+  duration_seconds: number | null;
+  started_at: string | null;
+  ended_at: string | null;
+  created_at: string;
+  messages: LiveInterviewMessage[];
+  // Completeness validation
+  // null           → fully complete, no issues
+  // set + hasScores → short duration warning (reduced confidence, scores valid)
+  // set + no scores → truly incomplete (hard gate failed)
+  incomplete_reason: string | null;
+  // Recruiter decision
+  recruiter_decision: string | null;
+  recruiter_notes: string | null;
+  // Invite config
+  expires_at: string | null;
+  max_questions: number | null;
+  interview_duration_minutes: number | null;
+  invitation_sent_at: string | null;
+  invitation_email: string | null;
+  video_url: string | null;
+  audio_url: string | null;
+}
+
+export interface LiveInterviewCreatePayload {
+  candidate_id: string;
+  job_id?: string | null;
+  max_questions?: number;
+}
+
+export async function createLiveInterview(
+  payload: LiveInterviewCreatePayload
+): Promise<LiveInterview> {
+  return apiRequest<LiveInterview>(`${BASE}/live`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getLiveInterviewByToken(token: string): Promise<LiveInterview> {
+  return apiRequest<LiveInterview>(`${BASE}/live/join/${token}`);
+}
+
+export async function getLiveInterview(id: string): Promise<LiveInterview> {
+  return apiRequest<LiveInterview>(`${BASE}/live/${id}`);
+}
+
+export async function getAssemblyAIToken(
+  screeningId: string,
+  sessionToken: string
+): Promise<{ token: string | null; available: boolean; ws_url?: string }> {
+  // Returns {token: null, available: false} when AssemblyAI is not configured
+  // or its API is temporarily unavailable — interview continues with text fallback.
+  return apiRequest<{ token: string | null; available: boolean; ws_url?: string }>(
+    `${BASE}/live/${screeningId}/assemblyai-token?token=${encodeURIComponent(sessionToken)}`
+  );
+}
+
+// ── Pipeline Queue ────────────────────────────────────────────────────────────
+
+export interface PipelineQueueEntry {
+  pipeline_id: string;
+  candidate_id: string;
+  job_id: string | null;
+  pipeline_stage: string;
+  pipeline_status: string;
+  stage_updated_at: string | null;
+  candidate_name: string;
+  candidate_email: string;
+  job_title: string | null;
+  client_name: string | null;
+  screening_id: string | null;
+  interview_status: string; // "not_started" | "pending" | "in_progress" | "completed" | "failed" | "incomplete"
+  overall_score: number | null;
+  recommendation: string | null;
+  session_token: string | null;
+  interview_mode: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  incomplete_reason: string | null;
+  duration_seconds: number | null;
+}
+
+export async function getPipelineScreeningQueue(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<PipelineQueueEntry[]> {
+  const qs = new URLSearchParams();
+  if (params?.limit) qs.set("limit", String(params.limit));
+  if (params?.offset) qs.set("offset", String(params.offset));
+  const q = qs.toString() ? `?${qs}` : "";
+  return apiRequest<PipelineQueueEntry[]>(`${BASE}/pipeline-queue${q}`);
+}
+
+export interface ScreeningSegment {
+  id: string;
+  question_number: number;
+  question_text: string;
+  transcript: string | null;
+  question_start_seconds: number | null;
+  answer_start_seconds: number | null;
+  answer_end_seconds: number | null;
+  duration_seconds: number | null;
+  video_clip_url: string | null;
+}
+
+export async function getScreeningSegments(screeningId: string): Promise<ScreeningSegment[]> {
+  return apiRequest<ScreeningSegment[]>(`${BASE}/live/${screeningId}/segments`);
+}
+
+export interface ScreeningRecordings {
+  screening_id: string;
+  full_video_url: string | null;
+  full_audio_url: string | null;
+  has_recording: boolean;
+}
+
+export async function getScreeningRecordings(screeningId: string): Promise<ScreeningRecordings> {
+  return apiRequest<ScreeningRecordings>(`${BASE}/live/${screeningId}/recordings`);
+}
+
+export async function getOrCreateCandidateScreening(
+  candidateId: string
+): Promise<LiveInterview> {
+  return apiRequest<LiveInterview>(`${BASE}/for-candidate/${candidateId}`);
+}
+
+// ── Send AI Screening Invite ──────────────────────────────────────────────────
+
+export interface SendAIScreeningInvitePayload {
+  candidate_id: string;
+  job_id?: string | null;
+  pipeline_id?: string | null;
+  expires_at?: string | null;
+  max_questions?: number;
+  interview_duration_minutes?: number;
+  custom_instructions?: string | null;
+}
+
+export interface SendAIScreeningInviteResponse {
+  screening_id: string;
+  candidate_email: string;
+  session_token: string;
+  interview_url: string;
+  invitation_sent: boolean;
+  invitation_sent_at: string | null;
+  expires_at: string | null;
+}
+
+export async function submitReviewDecision(
+  screeningId: string,
+  decision: "advance" | "reject" | "hold",
+  notes?: string
+): Promise<LiveInterview> {
+  return apiRequest<LiveInterview>(`${BASE}/live/${screeningId}/review-decision`, {
+    method: "POST",
+    body: JSON.stringify({ decision, notes: notes ?? null }),
+  });
+}
+
+export async function sendAIScreeningInvite(
+  payload: SendAIScreeningInvitePayload
+): Promise<SendAIScreeningInviteResponse> {
+  return apiRequest<SendAIScreeningInviteResponse>(`${BASE}/send-invite`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

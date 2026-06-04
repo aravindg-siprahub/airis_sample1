@@ -2,9 +2,8 @@ import { apiRequest } from "@/lib/api/client";
 
 export type DashboardPipelineStages = {
   sourced: number;
-  screening: number;
+  ai_interview: number;
   interview: number;
-  assessment: number;
   offer: number;
   placed: number;
 };
@@ -37,6 +36,10 @@ export type DashboardSummary = {
   placements: number;
   placements_trend: number;
   pipeline_stages: DashboardPipelineStages;
+  jobs_by_status: Record<string, number>;
+  candidates_by_status: Record<string, number>;
+  candidates_added_trend: Array<{ date: string; count: number }>;
+  jobs_created_trend: Array<{ date: string; count: number }>;
   recent_jobs: DashboardRecentJob[];
   activities: DashboardActivityItem[];
 };

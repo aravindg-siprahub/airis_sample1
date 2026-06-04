@@ -38,6 +38,9 @@ CLIENTS_CREATE = "clients:create"
 CLIENTS_READ = "clients:read"
 CLIENTS_UPDATE = "clients:update"
 CLIENTS_DELETE = "clients:delete"
+# Dedicated permission for assigning/removing recruiters from a client workspace.
+# Admins always have this; recruiters do not by default.
+CLIENTS_ASSIGN = "clients:assign"
 ATS_READ = "ats:read"
 ATS_RESCORE = "ats:rescore"
 
@@ -46,6 +49,9 @@ AI_SCREENING_READ = "ai_screening:read"
 AI_SCREENING_UPDATE = "ai_screening:update"
 AI_SCREENING_DELETE = "ai_screening:delete"
 AI_SCREENING_EVALUATE = "ai_screening:evaluate"
+# Guards access to AI evaluation results (scores, recommendations, transcripts).
+# Only recruiters and admins should hold this permission — candidates never do.
+AI_SCREENING_RESULTS_READ = "ai_screening:results_read"
 
 AI_INTERVIEW_QUESTIONS_GENERATE = "ai_interview_questions:generate"
 
@@ -84,6 +90,7 @@ ALL_PERMISSIONS: tuple[str, ...] = (
     CLIENTS_READ,
     CLIENTS_UPDATE,
     CLIENTS_DELETE,
+    CLIENTS_ASSIGN,
     ATS_READ,
     ATS_RESCORE,
     AI_SCREENING_CREATE,
@@ -91,6 +98,7 @@ ALL_PERMISSIONS: tuple[str, ...] = (
     AI_SCREENING_UPDATE,
     AI_SCREENING_DELETE,
     AI_SCREENING_EVALUATE,
+    AI_SCREENING_RESULTS_READ,
     SUBMISSIONS_CREATE,
     SUBMISSIONS_READ_OWN,
     AI_INTERVIEW_QUESTIONS_GENERATE,
