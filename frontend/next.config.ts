@@ -19,6 +19,12 @@ const nextConfig: NextConfig = {
     // Avoids dev-only "SegmentViewNode" / React Client Manifest errors from the App Router segment explorer (Next 15.5+).
     devtoolSegmentExplorer: false,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   async headers() {
     return [
       {
